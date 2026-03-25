@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Scraper | Dzikri Rabbani</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Space Grotesk', sans-serif; 
+            background-color: #F4F0E6; /* Warna cream sesuai gambar referensi */
+        }
+        
+        /* Utility Classes untuk gaya Retro / Neo-Brutalism */
+        .neo-border {
+            border: 3px solid #111111;
+        }
+        .neo-shadow {
+            box-shadow: 6px 6px 0px 0px #111111;
+        }
+        .neo-shadow-sm {
+            box-shadow: 4px 4px 0px 0px #111111;
+        }
+        .neo-shadow-hover {
+            transition: all 0.2s ease-in-out;
+        }
+        .neo-shadow-hover:hover {
+            transform: translate(-4px, -4px);
+            box-shadow: 8px 8px 0px 0px #111111;
+        }
+        .neo-shadow-hover:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px 0px #111111;
+        }
+        
+        /* Input focus states */
+        input:focus, textarea:focus {
+            outline: none;
+            box-shadow: 4px 4px 0px 0px #111111;
+            background-color: #FAFAFA;
+        }
+
+        /* Progress Bar Animation */
+        .progress-bar-fill {
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(255,255,255,0.2) 25%,
+                transparent 25%,
+                transparent 50%,
+                rgba(255,255,255,0.2) 50%,
+                rgba(255,255,255,0.2) 75%,
+                transparent 75%,
+                transparent
+            );
+            background-size: 1rem 1rem;
+            animation: moveStripes 1s linear infinite;
+        }
+
+        @keyframes moveStripes {
+            from { background-position: 0 0; }
+            to { background-position: 1rem 0; }
+        }
+
+        /* GIF Container (Memastikan background putih murni) */
+        .gif-container {
+            background-color: #FFFFFF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <nav class="bg-white neo-border neo-shadow-sm mx-4 md:mx-auto max-w-6xl mt-6 rounded-[2rem] px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-[#FFD233] neo-border w-12 h-12 rounded-full flex items-center justify-center text-2xl">
+                🐱
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-[#111]">Scraper.</h1>
+                <p class="text-xs font-semibold text-gray-500">Instagram Data Extractor</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <div class="text-right hidden md:block">
+                <p class="text-sm font-bold text-[#111]">Dzikri Rabbani</p>
+                <p class="text-xs font-semibold text-gray-500">NIM. 1237050027</p>
+            </div>
+            <div class="bg-[#90A8ED] neo-border w-12 h-12 rounded-full overflow-hidden flex items-center justify-center">
+                <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Dzikri&backgroundColor=90A8ED" alt="Avatar" class="w-full h-full">
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8 max-w-6xl flex flex-col md:flex-row gap-8">
+        
+        <div class="w-full md:w-1/3 space-y-6">
+            <div class="bg-white neo-border neo-shadow rounded-[2rem] p-6">
+                <div class="inline-block px-3 py-1 mb-4 bg-[#FF90E8] text-[#111] text-xs font-bold neo-border rounded-full">
+                    Tutorial
+                </div>
+                <h2 class="text-2xl font-bold mb-4">Cara Pakai 🚀</h2>
+                <ul class="space-y-4 text-sm font-semibold text-gray-700">
+                    <li class="flex items-start gap-3">
+                        <div class="bg-[#FFD233] neo-border w-6 h-6 rounded-full flex items-center justify-center shrink-0">1</div>
+                        <p>Isi identitas & target username.</p>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="bg-[#FFD233] neo-border w-6 h-6 rounded-full flex items-center justify-center shrink-0">2</div>
+                        <p>Atur limit gambar, teks, dan video.</p>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="bg-[#FFD233] neo-border w-6 h-6 rounded-full flex items-center justify-center shrink-0">3</div>
+                        <p>Klik tombol <b>Start Scraping</b>.</p>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="bg-[#FFD233] neo-border w-6 h-6 rounded-full flex items-center justify-center shrink-0">4</div>
+                        <p>Login di browser baru, lalu konfirmasi.</p>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-[#23A094] neo-border neo-shadow rounded-[2rem] p-6 text-center text-white relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 text-6xl opacity-50">✨</div>
+                <h3 class="text-xl font-bold mb-2">Ready to Hunt?</h3>
+                <p class="text-sm font-medium mb-4">Pastikan internet kamu stabil ya!</p>
+            </div>
+        </div>
+
+        <div class="w-full md:w-2/3">
+            <div class="bg-white neo-border neo-shadow rounded-[2rem] p-6 md:p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-[#111]">Dashboard Konfigurasi</h2>
+                    <span class="px-3 py-1 bg-[#D9F2CE] neo-border rounded-full text-xs font-bold">New Task</span>
+                </div>
+
+                <form id="scrapeForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-[#111] mb-2">NIM & Nama</label>
+                            <input type="text" id="nimNama" required 
+                                class="w-full px-4 py-3 neo-border rounded-xl transition-all"
+                                placeholder="1237050027_DzikriRabbani">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-[#111] mb-2">Target Username (Koma)</label>
+                            <textarea id="targetUsernames" required rows="2"
+                                class="w-full px-4 py-3 neo-border rounded-xl transition-all resize-none"
+                                placeholder="sppg.tangkiling, sppghiuputih"></textarea>
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-[#111] mt-8 mb-4 border-b-2 border-[#111] pb-2 inline-block">Limit Per Akun</h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-white neo-border neo-shadow-sm rounded-2xl p-4 flex flex-col items-center text-center relative overflow-hidden group hover:bg-[#90A8ED] transition-colors">
+                            <div class="w-12 h-12 bg-white neo-border rounded-full flex items-center justify-center text-xl mb-3 z-10">🖼️</div>
+                            <label class="text-sm font-bold text-[#111] z-10">Total Gambar</label>
+                            <input type="number" id="targetImages" value="30" min="1" max="100"
+                                class="w-full mt-2 px-3 py-2 neo-border rounded-lg text-center font-bold text-lg z-10 focus:bg-white">
+                        </div>
+
+                        <div class="bg-white neo-border neo-shadow-sm rounded-2xl p-4 flex flex-col items-center text-center relative overflow-hidden group hover:bg-[#FFD233] transition-colors">
+                            <div class="w-12 h-12 bg-white neo-border rounded-full flex items-center justify-center text-xl mb-3 z-10">📝</div>
+                            <label class="text-sm font-bold text-[#111] z-10">Total Caption</label>
+                            <input type="number" id="targetTexts" value="20" min="1" max="100"
+                                class="w-full mt-2 px-3 py-2 neo-border rounded-lg text-center font-bold text-lg z-10 focus:bg-white">
+                        </div>
+
+                        <div class="bg-white neo-border neo-shadow-sm rounded-2xl p-4 flex flex-col items-center text-center relative overflow-hidden group hover:bg-[#FF90E8] transition-colors">
+                            <div class="w-12 h-12 bg-white neo-border rounded-full flex items-center justify-center text-xl mb-3 z-10">🎬</div>
+                            <label class="text-sm font-bold text-[#111] z-10">Total Video</label>
+                            <input type="number" id="targetVideos" value="10" min="0" max="30"
+                                class="w-full mt-2 px-3 py-2 neo-border rounded-lg text-center font-bold text-lg z-10 focus:bg-white">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn"
+                        class="w-full bg-[#111] text-white font-bold py-4 px-6 rounded-2xl neo-shadow-hover mt-8 flex items-center justify-center gap-3 text-lg neo-border hover:bg-[#222]">
+                        <i class="fas fa-play"></i> Start Scraping
+                    </button>
+                </form>
+            </div>
+
+            <div id="progressCard" class="mt-8 bg-white neo-border neo-shadow rounded-[2rem] p-6 md:p-8 hidden">
+                
+                <div class="flex justify-between items-center border-b-2 border-black pb-4 mb-6">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <i class="fas fa-satellite-dish text-[#23A094]"></i> Status Eksekusi
+                    </h2>
+                    <span class="px-3 py-1 bg-[#FFD233] neo-border rounded-full text-xs font-bold animate-pulse">Running</span>
+                </div>
+
+                <div class="gif-container w-full h-40 mb-4 rounded-xl">
+                    <img id="statusGif" src="preview.gif" alt="Cat Working" class="h-full object-contain">
+                </div>
+
+                <div class="text-center mb-6">
+                    <h3 id="progressMessage" class="text-lg font-bold text-[#111]">Memulai program...</h3>
+                    <p id="currentAccount" class="text-sm font-semibold text-gray-500 mt-1"></p>
+                </div>
+
+                <div class="w-full bg-white neo-border h-6 rounded-full overflow-hidden p-[2px] mb-6">
+                    <div id="progressBar" class="h-full bg-[#23A094] rounded-full progress-bar-fill neo-border" style="width: 0%"></div>
+                </div>
+
+                <div id="detailProgress" class="mb-6"></div>
+                <div id="progressDetails" class="text-sm space-y-1"></div>
+                
+                <div id="loginConfirmSection" class="hidden text-center mt-6 p-4 bg-[#FFD233] neo-border rounded-2xl">
+                    <p class="font-bold text-[#111] mb-3">Silakan login di tab Chrome yang terbuka!</p>
+                    <button id="confirmLoginBtn" class="bg-white text-[#111] neo-border font-bold py-3 px-6 rounded-xl neo-shadow-hover inline-flex items-center gap-2">
+                        <i class="fas fa-check"></i> Saya Sudah Login
+                    </button>
+                </div>
+                
+                <div id="downloadSection" class="mt-6 hidden">
+                    <a id="downloadLink" href="#" class="w-full bg-[#FF90E8] text-[#111] neo-border font-bold py-4 px-6 rounded-2xl neo-shadow-hover flex items-center justify-center gap-3 text-lg transition-all text-center">
+                        <i class="fas fa-box-open"></i> Ambil Hasil Scraping (ZIP)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Logika JS tetap sama dengan yang sebelumnya, hanya update UI class untuk komponen dinamis
+        let currentSessionId = null;
+        let statusInterval = null;
+
+        document.getElementById('scrapeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const usernamesText = document.getElementById('targetUsernames').value;
+            const usernames = usernamesText.split(/[,\n]/).map(u => u.trim()).filter(u => u);
+            
+            if (usernames.length === 0) {
+                alert('Mohon masukkan minimal 1 username target!');
+                return;
+            }
+            
+            const formData = {
+                nim_nama: document.getElementById('nimNama').value,
+                target_images: document.getElementById('targetImages').value,
+                target_texts: document.getElementById('targetTexts').value,
+                target_videos: document.getElementById('targetVideos').value,
+                usernames: usernames
+            };
+            
+            if (!formData.nim_nama) {
+                alert('Mohon isi NIM & Nama!');
+                return;
+            }
+            
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghidupkan Mesin...';
+            
+            // Tampilkan Progress Card
+            document.getElementById('progressCard').classList.remove('hidden');
+            document.getElementById('progressMessage').innerHTML = 'Membuka Chrome (Tunggu bentar ya)...';
+            document.getElementById('progressBar').style.width = '10%';
+            document.getElementById('detailProgress').innerHTML = '';
+            
+            try {
+                // Fetch ke backend (pastikan endpoint /start_scrape aktif)
+                const response = await fetch('/start_scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                
+                currentSessionId = data.session_id;
+                
+                document.getElementById('loginConfirmSection').classList.remove('hidden');
+                document.getElementById('progressMessage').innerHTML = 'Browser udah kebuka. Ayo login dulu!';
+                document.getElementById('progressBar').style.width = '30%';
+                
+                document.getElementById('confirmLoginBtn').onclick = () => confirmLogin();
+                
+                if (statusInterval) clearInterval(statusInterval);
+                statusInterval = setInterval(checkStatus, 2000);
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i> Start Scraping';
+                document.getElementById('progressCard').classList.add('hidden');
+            }
+        });
+        
+        async function confirmLogin() {
+            if (!currentSessionId) return;
+            const confirmBtn = document.getElementById('confirmLoginBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            
+            try {
+                const response = await fetch(`/confirm_login/${currentSessionId}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'started') {
+                    document.getElementById('loginConfirmSection').classList.add('hidden');
+                    document.getElementById('progressMessage').innerHTML = 'Login sukses! Mulai berburu data...';
+                    document.getElementById('progressBar').style.width = '40%';
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Saya Sudah Login';
+            }
+        }
+        
+        async function checkStatus() {
+            if (!currentSessionId) return;
+            
+            try {
+                const response = await fetch(`/status/${currentSessionId}`);
+                const data = await response.json();
+                
+                if (data.status === 'waiting_login') {
+                    document.getElementById('progressMessage').innerHTML = data.message;
+                }
+                
+                if (data.current_account) {
+                    document.getElementById('currentAccount').innerHTML = `Sedang mengekstraksi akun: <span class="text-[#23A094] font-bold">@${data.current_account}</span>`;
+                }
+                
+                if (data.account_progress) {
+                    // UI Detail dengan gaya neo-brutalism
+                    let detailHtml = `
+                    <div class="grid grid-cols-3 gap-4 mt-4">
+                        <div class="bg-white neo-border rounded-xl p-3 text-center shadow-[4px_4px_0px_0px_#111]">
+                            <div class="text-xl mb-1">🖼️</div>
+                            <div class="text-2xl font-black">${data.account_progress.images || 0}</div>
+                            <div class="text-xs font-bold text-gray-500">Gambar</div>
+                        </div>
+                        <div class="bg-white neo-border rounded-xl p-3 text-center shadow-[4px_4px_0px_0px_#111]">
+                            <div class="text-xl mb-1">📝</div>
+                            <div class="text-2xl font-black">${data.account_progress.captions || 0}</div>
+                            <div class="text-xs font-bold text-gray-500">Caption</div>
+                        </div>
+                        <div class="bg-white neo-border rounded-xl p-3 text-center shadow-[4px_4px_0px_0px_#111]">
+                            <div class="text-xl mb-1">🎬</div>
+                            <div class="text-2xl font-black">${data.account_progress.videos || 0}</div>
+                            <div class="text-xs font-bold text-gray-500">Video</div>
+                        </div>
+                    </div>`;
+                    document.getElementById('detailProgress').innerHTML = detailHtml;
+                }
+                
+                if (data.status === 'running') {
+                    let progress = data.progress || 40;
+                    document.getElementById('progressBar').style.width = `${progress}%`;
+                    document.getElementById('progressMessage').innerHTML = data.message;
+                } else if (data.status === 'completed') {
+                    document.getElementById('progressBar').style.width = '100%';
+                    document.getElementById('progressBar').classList.replace('bg-[#23A094]', 'bg-[#FFD233]'); // Ganti warna kalau selesai
+                    document.getElementById('progressMessage').innerHTML = 'Selesai! Semua data sudah dikarungin 🎉';
+                    
+                    const downloadSection = document.getElementById('downloadSection');
+                    downloadSection.classList.remove('hidden');
+                    document.getElementById('downloadLink').href = `/download/${currentSessionId}`;
+                    
+                    const btn = document.getElementById('submitBtn');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-play"></i> Start Scraping';
+                    
+                    clearInterval(statusInterval);
+                    
+                } else if (data.status === 'error') {
+                    document.getElementById('progressBar').style.width = '100%';
+                    document.getElementById('progressBar').classList.replace('bg-[#23A094]', 'bg-[#FF5757]');
+                    document.getElementById('progressMessage').innerHTML = 'Yah error: ' + data.message;
+                    
+                    const btn = document.getElementById('submitBtn');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-play"></i> Start Scraping';
+                    
+                    clearInterval(statusInterval);
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
