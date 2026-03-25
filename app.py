@@ -1,6 +1,7 @@
 import os
 import time
 import threading
+import shutil
 import uuid
 import webbrowser
 from flask import Flask, render_template, request, jsonify, send_file
@@ -71,6 +72,15 @@ def run_scraper_after_login(session_id, usernames, nim_nama, target_images, targ
         
         # Create master zip with all accounts
         master_zip = create_master_zip(output_dir, nim_nama, usernames)
+        
+        # Hapus folder raw data (image, text, audio) otomatis untuk menghemat ruang
+        for folder in ['image', 'text', 'audio']:
+            folder_path = os.path.join(output_dir, folder)
+            if os.path.exists(folder_path):
+                try:
+                    shutil.rmtree(folder_path)
+                except Exception:
+                    pass
         
         scraper.driver.quit()
         
