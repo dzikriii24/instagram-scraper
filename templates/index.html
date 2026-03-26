@@ -108,19 +108,19 @@
                 <ul class="space-y-4 text-sm font-semibold text-gray-700">
                     <li class="flex items-start gap-3">
                         <div class="bg-[#FFD233] neo-border w-6 h-6 rounded-full flex items-center justify-center shrink-0">1</div>
-                        <p>Isi identitas & target username.</p>
+                        <p>Install ekstensi <a href="https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" target="_blank" class="font-bold underline">Cookie-Editor</a> di Chrome/Firefox.</p>
                     </li>
                     <li class="flex items-start gap-3">
                         <div class="bg-[#FFD233] neo-border w-6 h-6 rounded-full flex items-center justify-center shrink-0">2</div>
-                        <p>Atur limit gambar, teks, dan video.</p>
+                        <p>Login ke Instagram, buka ekstensi, klik <b>Export &rarr; Export as JSON</b> untuk menyalin cookies.</p>
                     </li>
                     <li class="flex items-start gap-3">
                         <div class="bg-[#FFD233] neo-border w-6 h-6 rounded-full flex items-center justify-center shrink-0">3</div>
-                        <p>Klik tombol <b>Start Scraping</b>.</p>
+                        <p>Isi semua form di samping, termasuk <b>menempelkan (paste) cookies</b> yang tadi disalin.</p>
                     </li>
                     <li class="flex items-start gap-3">
                         <div class="bg-[#FFD233] neo-border w-6 h-6 rounded-full flex items-center justify-center shrink-0">4</div>
-                        <p>Login di browser baru, lalu konfirmasi.</p>
+                        <p>Klik <b>Start Scraping</b> dan tunggu proses selesai. Tidak perlu login manual lagi.</p>
                     </li>
                 </ul>
             </div>
@@ -153,6 +153,16 @@
                                 class="w-full px-4 py-3 neo-border rounded-xl transition-all resize-none"
                                 placeholder="sppg.tangkiling, sppghiuputih"></textarea>
                         </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="block text-sm font-bold text-[#111] mb-2">
+                            Instagram Cookies (JSON)
+                            <a href="https://github.com/sweswoz/instagram-scraper-retro/blob/main/TUTORIAL_COOKIES.md" target="_blank" class="text-blue-600 hover:underline text-xs font-normal">(Cara dapatkan cookies?)</a>
+                        </label>
+                        <textarea id="instagramCookies" required rows="4"
+                            class="w-full px-4 py-3 neo-border rounded-xl transition-all resize-none"
+                            placeholder="Tempelkan JSON cookies dari ekstensi Cookie-Editor di sini..."></textarea>
                     </div>
 
                     <h3 class="text-lg font-bold text-[#111] mt-8 mb-4 border-b-2 border-[#111] pb-2 inline-block">Limit Per Akun</h3>
@@ -212,13 +222,6 @@
                 <div id="detailProgress" class="mb-6"></div>
                 <div id="progressDetails" class="text-sm space-y-1"></div>
                 
-                <div id="loginConfirmSection" class="hidden text-center mt-6 p-4 bg-[#FFD233] neo-border rounded-2xl">
-                    <p class="font-bold text-[#111] mb-3">Silakan login di tab Chrome yang terbuka!</p>
-                    <button id="confirmLoginBtn" class="bg-white text-[#111] neo-border font-bold py-3 px-6 rounded-xl neo-shadow-hover inline-flex items-center gap-2">
-                        <i class="fas fa-check"></i> Saya Sudah Login
-                    </button>
-                </div>
-                
                 <div id="downloadSection" class="mt-6 hidden">
                     <a id="downloadLink" href="#" class="w-full bg-[#FF90E8] text-[#111] neo-border font-bold py-4 px-6 rounded-2xl neo-shadow-hover flex items-center justify-center gap-3 text-lg transition-all text-center">
                         <i class="fas fa-box-open"></i> Ambil Hasil Scraping (ZIP)
@@ -249,11 +252,17 @@
                 target_images: document.getElementById('targetImages').value,
                 target_texts: document.getElementById('targetTexts').value,
                 target_videos: document.getElementById('targetVideos').value,
-                usernames: usernames
+                usernames: usernames,
+                cookies: document.getElementById('instagramCookies').value
             };
             
             if (!formData.nim_nama) {
                 alert('Mohon isi NIM & Nama!');
+                return;
+            }
+
+            if (!formData.cookies) {
+                alert('Mohon isi Cookie session Instagram!');
                 return;
             }
             
@@ -263,8 +272,8 @@
             
             // Tampilkan Progress Card
             document.getElementById('progressCard').classList.remove('hidden');
-            document.getElementById('progressMessage').innerHTML = 'Membuka Chrome (Tunggu bentar ya)...';
-            document.getElementById('progressBar').style.width = '10%';
+            document.getElementById('progressMessage').innerHTML = '🚀 Menghubungi server...';
+            document.getElementById('progressBar').style.width = '5%';
             document.getElementById('detailProgress').innerHTML = '';
             
             try {
@@ -280,12 +289,6 @@
                 
                 currentSessionId = data.session_id;
                 
-                document.getElementById('loginConfirmSection').classList.remove('hidden');
-                document.getElementById('progressMessage').innerHTML = 'Browser udah kebuka. Ayo login dulu!';
-                document.getElementById('progressBar').style.width = '30%';
-                
-                document.getElementById('confirmLoginBtn').onclick = () => confirmLogin();
-                
                 if (statusInterval) clearInterval(statusInterval);
                 statusInterval = setInterval(checkStatus, 2000);
                 
@@ -297,38 +300,12 @@
             }
         });
         
-        async function confirmLogin() {
-            if (!currentSessionId) return;
-            const confirmBtn = document.getElementById('confirmLoginBtn');
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-            
-            try {
-                const response = await fetch(`/confirm_login/${currentSessionId}`, { method: 'POST' });
-                const data = await response.json();
-                
-                if (data.status === 'started') {
-                    document.getElementById('loginConfirmSection').classList.add('hidden');
-                    document.getElementById('progressMessage').innerHTML = 'Login sukses! Mulai berburu data...';
-                    document.getElementById('progressBar').style.width = '40%';
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-                confirmBtn.disabled = false;
-                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Saya Sudah Login';
-            }
-        }
-        
         async function checkStatus() {
             if (!currentSessionId) return;
             
             try {
                 const response = await fetch(`/status/${currentSessionId}`);
                 const data = await response.json();
-                
-                if (data.status === 'waiting_login') {
-                    document.getElementById('progressMessage').innerHTML = data.message;
-                }
                 
                 if (data.current_account) {
                     document.getElementById('currentAccount').innerHTML = `Sedang mengekstraksi akun: <span class="text-[#23A094] font-bold">@${data.current_account}</span>`;
