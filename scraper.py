@@ -30,6 +30,11 @@ class InstagramScraper:
             options.add_argument('--disable-gpu')
         
         self.driver = webdriver.Chrome(options=options)
+        
+        # Tambahkan batas waktu (timeout) yang lebih lama untuk server hosting
+        self.driver.set_page_load_timeout(180)
+        self.driver.set_script_timeout(180)
+        
         self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         
     def login_with_cookies(self, cookies_json_str):
@@ -99,7 +104,10 @@ class InstagramScraper:
         time.sleep(5)
         
         post_links = []
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
+        try:
+            last_height = self.driver.execute_script("return document.body.scrollHeight")
+        except:
+            last_height = 0
         scroll_attempts = 0
         
         while scroll_attempts < 15 and len(post_links) < limit:
@@ -109,13 +117,17 @@ class InstagramScraper:
                 if href and "/p/" in href and href not in post_links:
                     post_links.append(href)
             
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
+            try:
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    break
+                last_height = new_height
+            except Exception:
+                print("  ⚠️ Timeout saat scroll feed, memproses data yang sudah ada...")
                 break
-            last_height = new_height
+                
             scroll_attempts += 1
             
         return post_links[:limit]
@@ -127,7 +139,10 @@ class InstagramScraper:
         time.sleep(5)
         
         reel_links = []
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
+        try:
+            last_height = self.driver.execute_script("return document.body.scrollHeight")
+        except:
+            last_height = 0
         scroll_attempts = 0
         
         while scroll_attempts < 8 and len(reel_links) < limit:
@@ -137,13 +152,17 @@ class InstagramScraper:
                 if href and "/reel/" in href and href not in reel_links:
                     reel_links.append(href)
             
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
+            try:
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    break
+                last_height = new_height
+            except Exception:
+                print("  ⚠️ Timeout saat scroll reels, memproses data yang sudah ada...")
                 break
-            last_height = new_height
+                
             scroll_attempts += 1
             
         return reel_links[:limit]
