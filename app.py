@@ -33,6 +33,9 @@ def run_scraping_task(session_id, nim_nama, usernames, target_images, target_tex
         
         if not scraper.login_with_cookies(cookies_json):
             raise Exception("Login dengan cookies gagal. Pastikan cookies valid dan tidak kedaluwarsa.")
+            
+        scraping_status[session_id]['message'] = '✅ Login berhasil! Mempersiapkan ekstraksi data...'
+        time.sleep(2) # Beri waktu sebentar agar pesan terbaca di UI
         
         total_results = {
             'images': 0,

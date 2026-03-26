@@ -305,7 +305,14 @@
             
             try {
                 const response = await fetch(`/status/${currentSessionId}`);
-                const data = await response.json();
+                const text = await response.text();
+                
+                // Cegah error JSON jika server Render membalas dengan halaman HTML (Misal: 502 Bad Gateway)
+                if (text.trim().startsWith('<')) {
+                    return; // Abaikan cycle ini dan coba lagi 2 detik kemudian
+                }
+                
+                const data = JSON.parse(text);
                 
                 if (data.current_account) {
                     document.getElementById('currentAccount').innerHTML = `Sedang mengekstraksi akun: <span class="text-[#23A094] font-bold">@${data.current_account}</span>`;
