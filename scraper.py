@@ -5,6 +5,7 @@ import yt_dlp
 import hashlib
 import re
 import zipfile
+import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
@@ -30,6 +31,47 @@ class InstagramScraper:
         
         self.driver = webdriver.Chrome(options=options)
         self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        
+    def login_with_cookies(self, cookies_json_str):
+        """Login using session cookies from a JSON string."""
+        self.driver.get("https://www.instagram.com/")
+        time.sleep(2)
+        
+        if not cookies_json_str:
+            print("  ❌ Cookie string is empty.")
+            return False
+            
+        try:
+            cookies = json.loads(cookies_json_str)
+            if not isinstance(cookies, list):
+                print("  ❌ Cookie JSON is not a list.")
+                return False
+
+            for cookie in cookies:
+                if 'name' in cookie and 'value' in cookie:
+                    # Some cookie extensions export 'expiry' but selenium wants it as int.
+                    if 'expiry' in cookie and cookie['expiry'] is not None:
+                        cookie['expiry'] = int(cookie['expiry'])
+                    # remove unsupported keys by some webdriver versions
+                    if 'sameSite' in cookie and cookie['sameSite'] not in ['Strict', 'Lax', 'None']:
+                        del cookie['sameSite']
+                    self.driver.add_cookie(cookie)
+            
+            print("  🍪 Cookies loaded. Refreshing page...")
+            self.driver.refresh()
+            time.sleep(5)
+            
+            # Verify login by checking for a known element that only appears when logged in
+            try:
+                self.driver.find_element(By.XPATH, "//*[local-name()='svg' and @aria-label='Home']")
+                print("  ✅ Login with cookies successful!")
+                return True
+            except:
+                print("  ❌ Login with cookies failed. The page does not seem to be logged in. Please use fresh cookies.")
+                return False
+        except Exception as e:
+            print(f"  ❌ An unexpected error occurred while loading cookies: {e}")
+            return False
         
     def save_cookies(self):
         """Save cookies to file for yt-dlp"""

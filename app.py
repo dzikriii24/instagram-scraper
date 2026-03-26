@@ -13,21 +13,26 @@ app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
 # Store progress in memory
 scraping_status = {}
-scraping_sessions = {}
 
-def run_scraper_after_login(session_id, usernames, nim_nama, target_images, target_texts, target_videos):
-    """Run scraper after manual login confirmed"""
+def run_scraping_task(session_id, nim_nama, usernames, target_images, target_texts, target_videos, cookies_json):
+    """Run the entire scraping task in a thread."""
+    scraper = None
     try:
         output_dir = os.path.join(os.getcwd(), 'scraped_data')
         os.makedirs(output_dir, exist_ok=True)
         
-        scraper = scraping_sessions.get(session_id)
-        if not scraper:
-            scraping_status[session_id] = {
-                'status': 'error',
-                'message': 'Session expired, please restart'
-            }
-            return
+        scraping_status[session_id] = {
+            'status': 'running',
+            'message': '🚀 Mempersiapkan driver... (Initializing driver...)'
+        }
+        
+        scraper = InstagramScraper(nim_nama, output_dir)
+        scraper.setup_driver()
+        
+        scraping_status[session_id]['message'] = '🍪 Mencoba login dengan cookies...'
+        
+        if not scraper.login_with_cookies(cookies_json):
+            raise Exception("Login dengan cookies gagal. Pastikan cookies valid dan tidak kedaluwarsa.")
         
         total_results = {
             'images': 0,
@@ -82,11 +87,6 @@ def run_scraper_after_login(session_id, usernames, nim_nama, target_images, targ
                 except Exception:
                     pass
         
-        scraper.driver.quit()
-        
-        if session_id in scraping_sessions:
-            del scraping_sessions[session_id]
-        
         scraping_status[session_id] = {
             'status': 'completed',
             'result': total_results,
@@ -100,12 +100,12 @@ def run_scraper_after_login(session_id, usernames, nim_nama, target_images, targ
             'error': str(e),
             'message': f'❌ Error: {str(e)}'
         }
-        if session_id in scraping_sessions:
+    finally:
+        if scraper and scraper.driver:
             try:
-                scraping_sessions[session_id].driver.quit()
+                scraper.driver.quit()
             except:
                 pass
-            del scraping_sessions[session_id]
 
 def update_progress(session_id, progress):
     """Update progress for current account"""
@@ -172,62 +172,30 @@ def start_scrape():
     else:
         return jsonify({'error': 'No username provided'}), 400
     
+    if not data.get('cookies'):
+        return jsonify({'error': 'Cookie session Instagram wajib diisi.'}), 400
+        
     session_id = str(uuid.uuid4())
     
-    try:
-        output_dir = os.path.join(os.getcwd(), 'scraped_data')
-        os.makedirs(output_dir, exist_ok=True)
-        
-        scraper = InstagramScraper(data['nim_nama'], output_dir)
-        scraper.setup_driver()
-        scraper.driver.get("https://www.instagram.com/")
-        
-        scraping_sessions[session_id] = scraper
-        
-        scraping_status[session_id] = {
-            'status': 'waiting_login',
-            'message': '🔓 Silakan login ke Instagram di browser yang terbuka',
-            'waiting_login': True,
-            'config': {
-                'usernames': usernames,
-                'nim_nama': data['nim_nama'],
-                'target_images': int(data['target_images']),
-                'target_texts': int(data['target_texts']),
-                'target_videos': int(data['target_videos'])
-            }
-        }
-        
-        return jsonify({'session_id': session_id, 'status': 'waiting_login'})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/confirm_login/<session_id>', methods=['POST'])
-def confirm_login(session_id):
-    if session_id not in scraping_status:
-        return jsonify({'error': 'Invalid session'}), 404
-    
-    status = scraping_status[session_id]
-    if status.get('status') != 'waiting_login':
-        return jsonify({'error': 'Invalid state'}), 400
-    
-    config = status.get('config', {})
-    
+    # Start the scraping task in a background thread
     thread = threading.Thread(
-        target=run_scraper_after_login,
+        target=run_scraping_task,
         args=(
             session_id,
-            config['usernames'],
-            config['nim_nama'],
-            config['target_images'],
-            config['target_texts'],
-            config['target_videos']
+            data['nim_nama'],
+            usernames,
+            int(data['target_images']),
+            int(data['target_texts']),
+            int(data['target_videos']),
+            data['cookies']
         )
     )
     thread.daemon = True
     thread.start()
     
-    return jsonify({'status': 'started'})
+    scraping_status[session_id] = {'status': 'starting', 'message': '🚀 Proses scraping dimulai...'}
+    
+    return jsonify({'session_id': session_id, 'status': 'started'})
 
 @app.route('/status/<session_id>')
 def status(session_id):
