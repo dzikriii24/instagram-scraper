@@ -79,7 +79,7 @@ def run_scraping_task(session_id, nim_nama, usernames, target_images, target_tex
             total_results[f'{username}_zip'] = zip_path
         
         # Create master zip with all accounts
-        master_zip = create_master_zip(output_dir, nim_nama, usernames)
+        master_zip = create_master_zip(output_dir, nim_nama, usernames, session_id)
         
         # Hapus folder raw data (image, text, audio) otomatis untuk menghemat ruang
         for folder in ['image', 'text', 'audio']:
@@ -117,11 +117,14 @@ def update_progress(session_id, progress):
         if 'account_progress' in status:
             status['account_progress'].update(progress)
 
-def create_master_zip(output_dir, nim_nama, usernames):
+def create_master_zip(output_dir, nim_nama, usernames, session_id=None):
     """Create master zip containing all scraped data"""
     import zipfile
     
-    master_zip_path = os.path.join(output_dir, f'{nim_nama}_all_accounts.zip')
+    if session_id:
+        master_zip_path = os.path.join(output_dir, f'{session_id}.zip')
+    else:
+        master_zip_path = os.path.join(output_dir, f'{nim_nama}_all_accounts.zip')
     
     with zipfile.ZipFile(master_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for username in usernames:
@@ -208,11 +211,20 @@ def status(session_id):
 
 @app.route('/download/<session_id>')
 def download(session_id):
-    if session_id in scraping_status and scraping_status[session_id]['status'] == 'completed':
+    master_zip = None
+    
+    # Coba cari di memori (jika dilayani oleh worker yang sama)
+    if session_id in scraping_status and scraping_status[session_id].get('status') == 'completed':
         master_zip = scraping_status[session_id].get('master_zip')
-        if master_zip and os.path.exists(master_zip):
-            return send_file(master_zip, as_attachment=True, download_name=f'scraped_data.zip')
-    return jsonify({'error': 'File not found'}), 404
+        
+    # Fallback: Langsung cari file fisiknya di folder (bypass masalah memori beda worker)
+    if not master_zip or not os.path.exists(master_zip):
+        master_zip = os.path.join(os.getcwd(), 'scraped_data', f'{session_id}.zip')
+        
+    if master_zip and os.path.exists(master_zip):
+        return send_file(master_zip, as_attachment=True, download_name='scraped_data.zip')
+        
+    return jsonify({'error': 'File tidak ditemukan. Kemungkinan terhapus karena server Render sleep/restart.'}), 404
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
