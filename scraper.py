@@ -8,6 +8,9 @@ import zipfile
 import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 class InstagramScraper:
     def __init__(self, nim_nama, output_dir):
@@ -16,20 +19,24 @@ class InstagramScraper:
         self.driver = None
         self.progress_callback = None
         
-    def setup_driver(self):
+    def setup_driver(self, headless=True):
         options = webdriver.ChromeOptions()
         options.add_argument('--disable-blink-features=AutomationControlled')
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         options.add_experimental_option('useAutomationExtension', False)
+        options.add_argument('--disable-gpu')
+        options.add_argument('--disable-infobars')
+        options.add_argument('--disable-notifications')
+        options.add_argument('--mute-audio')
         
-        # Jika berjalan di server Render/Cloud, paksa mode Headless agar tidak crash
-        if os.environ.get('RENDER'):
+        # Jika berjalan di server Render/Cloud atau user memilih headless
+        if os.environ.get('RENDER') or headless:
             options.add_argument('--headless=new')
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
-            options.add_argument('--disable-gpu')
         
         self.driver = webdriver.Chrome(options=options)
+        self.wait = WebDriverWait(self.driver, 15)
         
         # Tambahkan batas waktu (timeout) yang lebih lama untuk server hosting
         self.driver.set_page_load_timeout(180)
@@ -40,7 +47,10 @@ class InstagramScraper:
     def login_with_cookies(self, cookies_json_str):
         """Login using session cookies from a JSON string."""
         self.driver.get("https://www.instagram.com/")
-        time.sleep(2)
+        try:
+            self.wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        except:
+            pass
         
         if not cookies_json_str:
             print("  ❌ Cookie string is empty.")
@@ -64,14 +74,13 @@ class InstagramScraper:
             
             print("  🍪 Cookies loaded. Refreshing page...")
             self.driver.refresh()
-            time.sleep(5)
             
             # Verify login by checking for a known element that only appears when logged in
             try:
-                self.driver.find_element(By.XPATH, "//*[local-name()='svg' and @aria-label='Home']")
+                self.wait.until(EC.presence_of_element_located((By.XPATH, "//*[local-name()='svg' and @aria-label='Home']")))
                 print("  ✅ Login with cookies successful!")
                 return True
-            except:
+            except TimeoutException:
                 print("  ❌ Login with cookies failed. The page does not seem to be logged in. Please use fresh cookies.")
                 return False
         except Exception as e:
@@ -97,11 +106,32 @@ class InstagramScraper:
                 value = cookie.get('value', '')
                 f.write(f"{domain}\t{flag}\t{path}\t{secure}\t{expiry}\t{name}\t{value}\n")
     
+    def download_media(self, url, save_path):
+        """Download media directly using requests with driver cookies."""
+        try:
+            session = requests.Session()
+            for cookie in self.driver.get_cookies():
+                session.cookies.set(cookie['name'], cookie['value'])
+            
+            response = session.get(url, stream=True, timeout=30)
+            if response.status_code == 200:
+                with open(save_path, 'wb') as f:
+                    for chunk in response.iter_content(1024):
+                        f.write(chunk)
+                return True
+            return False
+        except Exception:
+            return False
+
     def get_feed_links(self, username, limit=90):
         url = f"https://www.instagram.com/{username}/"
         print(f"  🌐 Membuka profile: {url}")
         self.driver.get(url)
-        time.sleep(5)
+        
+        try:
+            self.wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '/p/')]")))
+        except:
+            time.sleep(2)
         
         post_links = []
         try:
@@ -110,33 +140,42 @@ class InstagramScraper:
             last_height = 0
         scroll_attempts = 0
         
-        while scroll_attempts < 15 and len(post_links) < limit:
+        while scroll_attempts < 20 and len(post_links) < limit:
             links = self.driver.find_elements(By.XPATH, "//a[contains(@href, '/p/')]")
             for link in links:
                 href = link.get_attribute("href")
-                if href and "/p/" in href and href not in post_links:
-                    post_links.append(href)
+                if href and "/p/" in href:
+                    clean_url = href.split('?')[0]
+                    if clean_url not in post_links:
+                        post_links.append(clean_url)
             
-            try:
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(2)
-                new_height = self.driver.execute_script("return document.body.scrollHeight")
-                if new_height == last_height:
-                    break
-                last_height = new_height
-            except Exception:
-                print("  ⚠️ Timeout saat scroll feed, memproses data yang sudah ada...")
+            if len(post_links) >= limit:
                 break
                 
-            scroll_attempts += 1
-            
+            try:
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(1.5)
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    scroll_attempts += 1
+                    time.sleep(1) # Extra wait for slow loading
+                else:
+                    scroll_attempts = 0 # Reset attempts if we moved
+                last_height = new_height
+            except Exception:
+                break
+                
         return post_links[:limit]
     
     def get_reel_links(self, username, limit=20):
         url = f"https://www.instagram.com/{username}/reels/"
         print(f"  🎬 Membuka tab reels: {url}")
         self.driver.get(url)
-        time.sleep(5)
+        
+        try:
+            self.wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '/reel/')]")))
+        except:
+            time.sleep(2)
         
         reel_links = []
         try:
@@ -145,53 +184,60 @@ class InstagramScraper:
             last_height = 0
         scroll_attempts = 0
         
-        while scroll_attempts < 8 and len(reel_links) < limit:
+        while scroll_attempts < 15 and len(reel_links) < limit:
             links = self.driver.find_elements(By.XPATH, "//a[contains(@href, '/reel/')]")
             for link in links:
                 href = link.get_attribute("href")
-                if href and "/reel/" in href and href not in reel_links:
-                    reel_links.append(href)
+                if href and "/reel/" in href:
+                    clean_url = href.split('?')[0]
+                    if clean_url not in reel_links:
+                        reel_links.append(clean_url)
             
-            try:
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(2)
-                new_height = self.driver.execute_script("return document.body.scrollHeight")
-                if new_height == last_height:
-                    break
-                last_height = new_height
-            except Exception:
-                print("  ⚠️ Timeout saat scroll reels, memproses data yang sudah ada...")
+            if len(reel_links) >= limit:
                 break
                 
-            scroll_attempts += 1
-            
+            try:
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(1.5)
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    scroll_attempts += 1
+                else:
+                    scroll_attempts = 0
+                last_height = new_height
+            except Exception:
+                break
+                
         return reel_links[:limit]
     
     def get_caption(self):
         try:
-            time.sleep(2)
+            # Wait briefly for caption containers
+            try:
+                self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div._a9zs, h1._ap3a")))
+            except:
+                pass
+                
             caption = ""
             selectors = [
+                "div._a9zs", 
+                "h1._ap3a",
                 "div._a9zr",
-                "div._a9zr div._a9zs", 
-                "div._a9zr span._ap3a",
-                "div.x1lliihq.x1plvlek.xryxfnj.x1n2onr6.x193iq5w.x1swvt13.x1f6kntn",
-                "div[role='dialog'] div._a9zr",
+                "span._ap3a",
+                "div[role='dialog'] div._a9zs",
             ]
             
             for selector in selectors:
-                elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                for elem in elements:
+                try:
+                    elem = self.driver.find_element(By.CSS_SELECTOR, selector)
                     text = elem.text
-                    if text and len(text) > 10:
-                        if not text.startswith("like") and not "likes" in text.lower():
-                            if not text.startswith("view all"):
-                                caption = text
-                                break
-                if caption:
-                    break
+                    if text and len(text) > 2:
+                        caption = text
+                        break
+                except:
+                    continue
             
-            if not caption:
+            if not caption or len(caption) < 5:
                 try:
                     meta_desc = self.driver.find_element(By.CSS_SELECTOR, "meta[property='og:description']")
                     caption = meta_desc.get_attribute("content")
@@ -203,19 +249,20 @@ class InstagramScraper:
             if not caption:
                 caption = "[Caption tidak tersedia]"
             
-            if caption:
-                lines = caption.split('\n')
-                cleaned_lines = []
-                for line in lines:
-                    if not re.match(r'^[·\d]+[wmdh]\s*$', line.strip()):
-                        if not line.strip().startswith('like') and not line.strip().startswith('view'):
-                            if not line.strip().startswith('Reply'):
-                                cleaned_lines.append(line)
-                caption = '\n'.join(cleaned_lines).strip()
+            # Clean up unwanted lines
+            lines = caption.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                l = line.strip()
+                if not l: continue
+                if re.match(r'^[·\d]+[wmdh]\s*$', l): continue
+                if l.lower().startswith(('like', 'view', 'reply', 'edited')): continue
+                cleaned_lines.append(line)
+            caption = '\n'.join(cleaned_lines).strip()
                 
             return caption
             
-        except Exception as e:
+        except Exception:
             return "[Gagal mengambil caption]"
     
     def capture_post_image(self, save_path, slide_target=None):
@@ -224,19 +271,16 @@ class InstagramScraper:
                 for i in range(slide_target - 1):
                     try:
                         next_btn = self.driver.find_element(By.CSS_SELECTOR, "button[aria-label='Next']")
-                        if next_btn.is_enabled():
-                            next_btn.click()
-                            time.sleep(1.5)
-                        else:
-                            break
+                        next_btn.click()
+                        time.sleep(1)
                     except:
                         break
             
+            # Try to find high-res images first
             selectors = [
-                "div[role='dialog'] article img",
-                "div[role='dialog'] div.x5yr21d img",
-                "article div._aagv img",
-                "div._aagu img",
+                "div[role='dialog'] article img[srcset]",
+                "article img[srcset]",
+                "div._aagv img",
                 "img[style*='object-fit']"
             ]
             
@@ -244,46 +288,47 @@ class InstagramScraper:
                 elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
                 for elem in elements:
                     src = elem.get_attribute("src")
-                    alt = elem.get_attribute("alt") or ""
-                    class_name = elem.get_attribute("class") or ""
+                    if not src or "profile" in src.lower() or "avatar" in src.lower():
+                        continue
+                        
+                    # 1. Try direct download (Much faster & Better quality)
+                    if self.download_media(src, save_path):
+                        if os.path.getsize(save_path) > 5000:
+                            return True
                     
-                    if "profile" in src.lower() or "avatar" in src.lower():
+                    # 2. Fallback to screenshot
+                    try:
+                        elem.screenshot(save_path)
+                        if os.path.exists(save_path) and os.path.getsize(save_path) > 5000:
+                            return True
+                    except:
                         continue
-                    if "profile" in class_name.lower():
-                        continue
-                    if "profile" in alt.lower():
-                        continue
-                    
-                    elem.screenshot(save_path)
-                    if os.path.getsize(save_path) > 5000:
-                        return True
             
             return False
             
-        except Exception as e:
+        except Exception:
             return False
     
     def capture_reel_thumbnail(self, save_path):
         """Screenshot reels thumbnail as fallback"""
         try:
-            selectors = [
-                "video",
-                "canvas",
-                "div[role='dialog'] video",
-                "div[role='dialog'] canvas",
-                "img[src*='cdninstagram']"
-            ]
-            
+            selectors = ["video", "img[src*='cdninstagram']"]
             for selector in selectors:
-                elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                for elem in elements:
+                try:
+                    elem = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    src = elem.get_attribute("src") or elem.get_attribute("poster")
+                    
+                    if src and self.download_media(src, save_path):
+                        if os.path.getsize(save_path) > 5000:
+                            return True
+                            
                     elem.screenshot(save_path)
                     if os.path.getsize(save_path) > 5000:
                         return True
-            
+                except:
+                    continue
             return False
-            
-        except Exception as e:
+        except Exception:
             return False
     
     def download_video_with_ytdlp(self, video_url, save_path):
@@ -321,7 +366,10 @@ class InstagramScraper:
     
     def process_feed(self, post_url, folder_paths, counters, target_texts, target_images):
         self.driver.get(post_url)
-        time.sleep(5)
+        try:
+            self.wait.until(EC.presence_of_element_located((By.TAG_NAME, "article")))
+        except:
+            time.sleep(2)
         
         shortcode = post_url.split('/')[-2]
         print(f"    📌 Post: {shortcode}")
@@ -391,7 +439,10 @@ class InstagramScraper:
     
     def process_reel(self, reel_url, folder_paths, counters, target_videos):
         self.driver.get(reel_url)
-        time.sleep(5)
+        try:
+            self.wait.until(EC.presence_of_element_located((By.TAG_NAME, "video")))
+        except:
+            time.sleep(2)
         
         shortcode = reel_url.split('/')[-2]
         print(f"    🎬 Reel: {shortcode}")

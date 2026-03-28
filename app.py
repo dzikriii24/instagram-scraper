@@ -14,7 +14,7 @@ app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 # Store progress in memory
 scraping_status = {}
 
-def run_scraping_task(session_id, nim_nama, usernames, target_images, target_texts, target_videos, cookies_json):
+def run_scraping_task(session_id, nim_nama, usernames, target_images, target_texts, target_videos, cookies_json, headless=True):
     """Run the entire scraping task in a thread."""
     scraper = None
     try:
@@ -27,7 +27,7 @@ def run_scraping_task(session_id, nim_nama, usernames, target_images, target_tex
         }
         
         scraper = InstagramScraper(nim_nama, output_dir)
-        scraper.setup_driver()
+        scraper.setup_driver(headless=headless)
         
         scraping_status[session_id]['message'] = '🍪 Mencoba login dengan cookies...'
         
@@ -193,7 +193,8 @@ def start_scrape():
             int(data['target_images']),
             int(data['target_texts']),
             int(data['target_videos']),
-            data['cookies']
+            data['cookies'],
+            data.get('headless', True)
         )
     )
     thread.daemon = True

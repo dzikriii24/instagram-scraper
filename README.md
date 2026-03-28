@@ -2,6 +2,7 @@
 
 Aplikasi Flask + Selenium untuk melakukan scraping Feed dan Reels Instagram (Gambar, Teks/Caption, dan Audio/Video).
 
+[![Saweria](https://img.shields.io/badge/Saweria-Support%20Me-yellow?style=for-the-badge&logo=coffee)](https://saweria.co/dzikrizk24)
 ## 🚀 Menjalankan Secara Lokal (Direkomendasikan)
 Karena Instagram memiliki keamanan yang ketat, aplikasi ini mengandalkan **Login Manual** melalui browser Chrome yang muncul di layar komputer Anda. Oleh karena itu, menjalankan aplikasi ini di komputer lokal sangat direkomendasikan.
 
