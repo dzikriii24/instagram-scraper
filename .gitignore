@@ -1,0 +1,5 @@
+# Ignore file
+cookies.txt
+
+# Ignore folder
+scraped_data/
